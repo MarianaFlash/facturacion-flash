@@ -21,6 +21,12 @@ const ESTADO_COLORS = {
   "Rechazada": { bg: "#FEE2E2", text: "#991B1B", dot: "#EF4444" },
 };
 
+// Flash brand red
+const FLASH_RED = "#E53935";
+const FLASH_RED_DARK = "#C62828";
+const FLASH_RED_LIGHT = "#FFEBEE";
+const FLASH_RED_MEDIUM = "#EF5350";
+
 function formatCurrency(val, moneda) {
   if (!val) return "";
   const num = parseFloat(val);
@@ -34,10 +40,10 @@ function SelectField({ label, value, onChange, options, placeholder, required })
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-gray-700">
-        {label} {required && <span className="text-red-400">*</span>}
+        {label} {required && <span style={{color: FLASH_RED}}>*</span>}
       </label>
       <div className="relative">
-        <select value={value} onChange={onChange} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all appearance-none pr-10">
+        <select value={value} onChange={onChange} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none pr-10" style={{"--tw-ring-color": FLASH_RED}} onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}>
           <option value="">{placeholder || "Seleccionar..."}</option>
           {options.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -51,11 +57,11 @@ function InputField({ label, value, onChange, placeholder, type = "text", requir
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-gray-700">
-        {label} {required && <span className="text-red-400">*</span>}
+        {label} {required && <span style={{color: FLASH_RED}}>*</span>}
       </label>
       <div className="relative">
         {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">{prefix}</span>}
-        <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full ${prefix ? "pl-8" : "pl-3"} pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all`} />
+        <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full ${prefix ? "pl-8" : "pl-3"} pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all`} onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'} />
       </div>
     </div>
   );
@@ -142,25 +148,26 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-purple-50/40">
-      <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200/60 sticky top-0 z-30">
+    <div className="min-h-screen" style={{backgroundColor: '#FAFAFA'}}>
+      {/* Header — Flash Red */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200/50">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{backgroundColor: FLASH_RED, boxShadow: '0 4px 14px rgba(229, 57, 53, 0.3)'}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               </div>
               <div>
-                <h1 className="text-base font-bold text-gray-900 leading-tight">Facturación Flash</h1>
-                <p className="text-[11px] text-gray-400 leading-tight">Asesoría Digital SAS</p>
+                <h1 className="text-lg font-black text-gray-900 leading-tight tracking-tight">FLASH</h1>
+                <p className="text-[11px] text-gray-400 leading-tight font-medium">Facturación</p>
               </div>
             </div>
-            <nav className="flex bg-gray-100/80 rounded-xl p-1 gap-0.5">
+            <nav className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
               {navItems.map((item) => (
-                <button key={item.id} onClick={() => setView(item.id)} className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${view === item.id ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>
+                <button key={item.id} onClick={() => setView(item.id)} className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`} style={view === item.id ? {backgroundColor: 'white', color: FLASH_RED, boxShadow: '0 1px 3px rgba(0,0,0,0.08)'} : {color: '#6B7280'}}>
                   <span className="hidden sm:inline">{item.icon}</span>
                   <span>{item.label}</span>
-                  {item.count !== undefined && (<span className={`text-[11px] px-1.5 py-0.5 rounded-full font-semibold ${item.alert ? "bg-amber-100 text-amber-700" : "bg-gray-200/80 text-gray-500"}`}>{item.count}</span>)}
+                  {item.count !== undefined && (<span className="text-[11px] px-1.5 py-0.5 rounded-full font-semibold" style={item.alert ? {backgroundColor: '#FEF3C7', color: '#92400E'} : {backgroundColor: '#F3F4F6', color: '#6B7280'}}>{item.count}</span>)}
                 </button>
               ))}
             </nav>
@@ -169,6 +176,7 @@ export default function App() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        {/* ============ FORM VIEW ============ */}
         {view === "form" && (
           <div className="max-w-2xl mx-auto">
             {success && (
@@ -179,22 +187,35 @@ export default function App() {
                 <div><p className="text-sm text-emerald-800 font-semibold">Solicitud enviada</p><p className="text-xs text-emerald-600">Queda pendiente de aprobación por Mariana.</p></div>
               </div>
             )}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200/60 overflow-hidden">
-              <div className="px-6 py-5 bg-gradient-to-r from-indigo-500 to-purple-600">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              {/* Form header — Flash Red gradient */}
+              <div className="px-6 py-5" style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`}}>
                 <h2 className="text-lg font-bold text-white">Nueva Solicitud de Facturación</h2>
-                <p className="text-sm text-indigo-100 mt-1">Llena los datos y envía. Mariana recibirá la solicitud para aprobación.</p>
+                <p className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.8)'}}>Llena los datos y envía. Mariana recibirá la solicitud para aprobación.</p>
               </div>
               <div className="p-6 space-y-7">
+                {/* Cliente */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><span className="w-6 h-6 bg-indigo-100 rounded-lg flex items-center justify-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Datos del Cliente</p></div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{backgroundColor: FLASH_RED_LIGHT}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={FLASH_RED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </span>
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{color: FLASH_RED}}>Datos del Cliente</p>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="Cliente / Razón Social" value={form.cliente} onChange={set("cliente")} placeholder="Ej: Bancoldex S.A." required />
                     <InputField label="NIT / Identificación" value={form.nit} onChange={set("nit")} placeholder="Ej: 800.149.923-6" />
                   </div>
                 </div>
                 <hr className="border-gray-100" />
+                {/* Servicio */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><span className="w-6 h-6 bg-purple-100 rounded-lg flex items-center justify-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span><p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Detalle del Servicio</p></div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{backgroundColor: '#FFF3E0'}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#E65100" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                    </span>
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{color: '#E65100'}}>Detalle del Servicio</p>
+                  </div>
                   <div className="space-y-4">
                     <InputField label="Concepto" value={form.concepto} onChange={set("concepto")} placeholder="Ej: Fee mensual abril" required />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -205,8 +226,14 @@ export default function App() {
                   </div>
                 </div>
                 <hr className="border-gray-100" />
+                {/* Valores */}
                 <div>
-                  <div className="flex items-center gap-2 mb-3"><span className="w-6 h-6 bg-emerald-100 rounded-lg flex items-center justify-center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Valor y Condiciones</p></div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{backgroundColor: '#E8F5E9'}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </span>
+                    <p className="text-xs font-semibold uppercase tracking-wider" style={{color: '#2E7D32'}}>Valor y Condiciones</p>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="Valor a Facturar" value={form.valor} onChange={set("valor")} placeholder="Ej: 12000000" type="number" required prefix="$" />
                     <SelectField label="Moneda" value={form.moneda} onChange={set("moneda")} options={["COP", "USD"]} />
@@ -216,39 +243,43 @@ export default function App() {
                     <SelectField label="Mes de Facturación" value={form.mesFacturacion} onChange={set("mesFacturacion")} options={MESES} required />
                   </div>
                   <label className="mt-4 flex items-center gap-2.5 cursor-pointer group">
-                    <input type="checkbox" checked={form.aplicaRetencion} onChange={set("aplicaRetencion")} className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                    <input type="checkbox" checked={form.aplicaRetencion} onChange={set("aplicaRetencion")} className="w-4 h-4 rounded border-gray-300" style={{accentColor: FLASH_RED}} />
                     <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">Aplica retención en la fuente</span>
                   </label>
                 </div>
                 <hr className="border-gray-100" />
+                {/* Observaciones */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Observaciones</label>
-                  <textarea value={form.observaciones} onChange={set("observaciones")} placeholder="Notas adicionales para contabilidad..." rows={3} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-all resize-none" />
+                  <textarea value={form.observaciones} onChange={set("observaciones")} placeholder="Notas adicionales para contabilidad..." rows={3} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all resize-none" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'} />
                 </div>
+                {/* Preview */}
                 {form.valor && form.cliente && (
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <p className="text-xs text-gray-400 mb-1">Resumen de solicitud</p>
+                  <div className="rounded-xl p-4 border" style={{backgroundColor: FLASH_RED_LIGHT, borderColor: '#FFCDD2'}}>
+                    <p className="text-xs mb-1" style={{color: '#B71C1C'}}>Resumen de solicitud</p>
                     <p className="text-sm text-gray-800">Facturar a <strong>{form.cliente}</strong> por <strong>{formatCurrency(form.valor, form.moneda)}</strong> {form.moneda}{form.concepto && <> — {form.concepto}</>}</p>
                   </div>
                 )}
-                <button onClick={handleSubmit} disabled={!form.cliente || !form.concepto || !form.valor || !form.tipoServicio || !form.mesFacturacion} className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-indigo-200/60 active:scale-[0.98]">Enviar Solicitud de Facturación</button>
+                {/* Submit — Flash Red */}
+                <button onClick={handleSubmit} disabled={!form.cliente || !form.concepto || !form.valor || !form.tipoServicio || !form.mesFacturacion} className="w-full py-3.5 text-white font-semibold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]" style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`, boxShadow: '0 4px 14px rgba(229, 57, 53, 0.3)'}}>Enviar Solicitud de Facturación</button>
               </div>
             </div>
           </div>
         )}
 
+        {/* ============ LIST VIEW ============ */}
         {view === "list" && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <KpiCard label="Solicitudes" value={solicitudes.length} subtitle="total registradas" color="#6366F1" />
-              <KpiCard label="Aprobado" value={formatCurrency(totalAprobado, "COP")} subtitle="listo para facturar" color="#3B82F6" />
-              <KpiCard label="Facturado" value={formatCurrency(totalFacturado, "COP")} subtitle="facturas emitidas" color="#059669" />
-              <KpiCard label="Pendientes" value={pendientes.length} subtitle="por aprobar" color="#F59E0B" />
+              <KpiCard label="Solicitudes" value={solicitudes.length} subtitle="total registradas" color={FLASH_RED} />
+              <KpiCard label="Aprobado" value={formatCurrency(totalAprobado, "COP")} subtitle="listo para facturar" color="#1565C0" />
+              <KpiCard label="Facturado" value={formatCurrency(totalFacturado, "COP")} subtitle="facturas emitidas" color="#2E7D32" />
+              <KpiCard label="Pendientes" value={pendientes.length} subtitle="por aprobar" color="#E65100" />
             </div>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"><option value="Todos">Todos los estados</option>{ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}</select>
-                <select value={filterMes} onChange={(e) => setFilterMes(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"><option value="Todos">Todos los meses</option>{MESES.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+                <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none transition-all" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}><option value="Todos">Todos los estados</option>{ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}</select>
+                <select value={filterMes} onChange={(e) => setFilterMes(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none transition-all" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}><option value="Todos">Todos los meses</option>{MESES.map((m) => <option key={m} value={m}>{m}</option>)}</select>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-400">{filtered.length} resultados · <strong className="text-gray-700">{formatCurrency(totalFiltered, "COP")}</strong></span>
@@ -257,7 +288,7 @@ export default function App() {
             </div>
             {filtered.length === 0 ? (<div className="bg-white rounded-2xl border border-gray-100 p-12 text-center"><p className="text-gray-400">No hay solicitudes con estos filtros.</p></div>) : (
               filtered.map((s) => (
-                <div key={s.id} className="bg-white rounded-2xl border border-gray-200/60 shadow-sm hover:shadow-md hover:border-gray-300/60 transition-all cursor-pointer" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}>
+                <div key={s.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)} style={{borderLeft: `4px solid ${ESTADO_COLORS[s.estado]?.dot || '#ccc'}`}}>
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
@@ -299,14 +330,15 @@ export default function App() {
           </div>
         )}
 
+        {/* ============ APPROVAL VIEW ============ */}
         {view === "approval" && (
           <div className="space-y-5">
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200/60">
+            <div className="rounded-2xl p-5 border" style={{background: 'linear-gradient(135deg, #FFF3E0 0%, #FBE9E7 100%)', borderColor: '#FFCCBC'}}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{backgroundColor: '#FF8A65'}}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
                 <div>
-                  <h2 className="text-base font-bold text-amber-900">Aprobación de Solicitudes</h2>
-                  <p className="text-sm text-amber-700 mt-0.5">{pendientes.length > 0 ? `Tienes ${pendientes.length} solicitud${pendientes.length > 1 ? "es" : ""} esperando tu aprobación` : "No hay solicitudes pendientes"}</p>
+                  <h2 className="text-base font-bold" style={{color: '#BF360C'}}>Aprobación de Solicitudes</h2>
+                  <p className="text-sm mt-0.5" style={{color: '#D84315'}}>{pendientes.length > 0 ? `Tienes ${pendientes.length} solicitud${pendientes.length > 1 ? "es" : ""} esperando tu aprobación` : "No hay solicitudes pendientes"}</p>
                 </div>
               </div>
             </div>
@@ -318,7 +350,7 @@ export default function App() {
               </div>
             ) : (
               pendientes.map((s) => (
-                <div key={s.id} className="bg-white rounded-2xl border-2 border-amber-100 shadow-sm overflow-hidden hover:border-amber-200 transition-all">
+                <div key={s.id} className="bg-white rounded-2xl shadow-sm overflow-hidden transition-all" style={{border: `2px solid ${FLASH_RED}20`}}>
                   <div className="p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div>
@@ -339,8 +371,8 @@ export default function App() {
                       {s.observaciones && <div className="flex justify-between text-sm"><span className="text-gray-400">Notas</span><span className="text-gray-700 text-right max-w-[60%]">{s.observaciones}</span></div>}
                     </div>
                     <div className="flex gap-3 mt-5">
-                      <button onClick={() => updateEstado(s.id, "Aprobada")} className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-[0.98]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Aprobar</button>
-                      <button onClick={() => updateEstado(s.id, "Rechazada")} className="px-6 py-3 bg-white border-2 border-red-200 text-red-600 font-semibold rounded-xl hover:bg-red-50 hover:border-red-300 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rechazar</button>
+                      <button onClick={() => updateEstado(s.id, "Aprobada")} className="flex-1 py-3 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]" style={{background: 'linear-gradient(135deg, #43A047 0%, #2E7D32 100%)', boxShadow: '0 4px 14px rgba(46, 125, 50, 0.3)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Aprobar</button>
+                      <button onClick={() => updateEstado(s.id, "Rechazada")} className="px-6 py-3 bg-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]" style={{border: `2px solid ${FLASH_RED}40`, color: FLASH_RED}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rechazar</button>
                     </div>
                   </div>
                 </div>
@@ -349,7 +381,11 @@ export default function App() {
           </div>
         )}
       </main>
-      <footer className="border-t border-gray-100 mt-12 py-4"><p className="text-center text-xs text-gray-300">Flash · Asesoría Digital SAS · Sistema de Facturación</p></footer>
+
+      {/* Footer — Flash Red accent line */}
+      <footer className="mt-12 py-4" style={{borderTop: `3px solid ${FLASH_RED}`}}>
+        <p className="text-center text-xs text-gray-400 font-medium">FLASH · Asesoría Digital SAS · Sistema de Facturación</p>
+      </footer>
     </div>
   );
 }
