@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
 
 const INITIAL_FORM = {
   cliente: "",
@@ -28,11 +29,9 @@ const ESTADO_COLORS = {
   "Rechazada": { bg: "#FEE2E2", text: "#991B1B", dot: "#EF4444" },
 };
 
-// Flash brand red
 const FLASH_RED = "#E53935";
 const FLASH_RED_DARK = "#C62828";
 const FLASH_RED_LIGHT = "#FFEBEE";
-const FLASH_RED_MEDIUM = "#EF5350";
 
 function formatCurrency(val, moneda) {
   if (!val) return "";
@@ -50,9 +49,7 @@ function SelectField({ label, value, onChange, options, placeholder, required })
         {label} {required && <span style={{color: FLASH_RED}}>*</span>}
       </label>
       <div className="relative">
-        <select
-          value={value}
-          onChange={onChange}
+        <select value={value} onChange={onChange}
           className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none pr-10"
           style={{"--tw-ring-color": FLASH_RED}}
           onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
@@ -74,11 +71,7 @@ function InputField({ label, value, onChange, placeholder, type = "text", requir
       </label>
       <div className="relative">
         {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">{prefix}</span>}
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
+        <input type={type} value={value} onChange={onChange} placeholder={placeholder}
           className={`w-full ${prefix ? "pl-8" : "pl-3"} pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all`}
           onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
           onBlur={(e) => e.target.style.boxShadow = 'none'}
@@ -108,41 +101,69 @@ function KpiCard({ label, value, subtitle, color }) {
   );
 }
 
-const DEMO_DATA = [
-  { id: 1, cliente: "Bancoldex", concepto: "Fee mensual abril — Marketing Digital", proyecto: "Marketing Digital Bancoldex", tipoServicio: "Fee Mensual", valor: "12000000", moneda: "COP", aplicaRetencion: false, incluyeIva: true, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "", estado: "Pendiente Aprobación", solicitadoPor: "Carolina M.", fecha: "2026-04-10" },
-  { id: 2, cliente: "Skandia", concepto: "Pauta digital abril", proyecto: "Pauta Skandia", tipoServicio: "Pauta Digital", valor: "8500000", moneda: "COP", aplicaRetencion: true, incluyeIva: true, formaPago: "Anticipado", mesFacturacion: "Abril", observaciones: "", estado: "Aprobada", solicitadoPor: "Andrés R.", fecha: "2026-04-08", aprobadoPor: "Mariana R.", fechaAprobacion: "2026-04-09" },
-  { id: 3, cliente: "Claro Colombia", concepto: "Producción campaña Vive Claro", proyecto: "Campaña Vive Claro", tipoServicio: "Producción", valor: "25000000", moneda: "COP", aplicaRetencion: false, incluyeIva: false, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "", estado: "Facturada", solicitadoPor: "Carolina M.", fecha: "2026-04-01", aprobadoPor: "Mariana R.", fechaAprobacion: "2026-04-02", numFactura: "FAC-0341", fechaFacturacion: "2026-04-05" },
-  { id: 4, cliente: "AYR España", concepto: "Consultoría estrategia digital Q2", proyecto: "Estrategia AYR 2026", tipoServicio: "Consultoría", valor: "5200", moneda: "EUR", aplicaRetencion: false, incluyeIva: false, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "Facturar en EUR a cuenta española", estado: "Pendiente Aprobación", solicitadoPor: "Mariana R.", fecha: "2026-04-12" },
-];
-
 export default function App() {
   const [view, setView] = useState("form");
   const [form, setForm] = useState(INITIAL_FORM);
-  const [solicitudes, setSolicitudes] = useState(DEMO_DATA);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
   const [filterEstado, setFilterEstado] = useState("Todos");
   const [filterMes, setFilterMes] = useState("Todos");
   const [expandedId, setExpandedId] = useState(null);
 
+  // Fetch solicitudes from Supabase
+  const fetchSolicitudes = async () => {
+    const { data, error } = await supabase
+      .from('solicitudes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setSolicitudes(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchSolicitudes(); }, []);
+
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   const pendientes = solicitudes.filter((s) => s.estado === "Pendiente Aprobación");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.cliente || !form.concepto || !form.valor || !form.tipoServicio || !form.mesFacturacion) return;
-    setSolicitudes([{ id: solicitudes.length + 1, ...form, estado: "Pendiente Aprobación", solicitadoPor: "Tú", fecha: new Date().toISOString().split("T")[0] }, ...solicitudes]);
-    setForm(INITIAL_FORM);
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 4000);
+    const { error } = await supabase.from('solicitudes').insert({
+      cliente: form.cliente,
+      concepto: form.concepto,
+      proyecto: form.proyecto || null,
+      tipo_servicio: form.tipoServicio,
+      valor: parseFloat(form.valor),
+      moneda: form.moneda,
+      incluye_iva: form.incluyeIva,
+      aplica_retencion: form.aplicaRetencion,
+      forma_pago: form.formaPago || null,
+      mes_facturacion: form.mesFacturacion,
+      observaciones: form.observaciones || null,
+      solicitado_por: 'Tú',
+    });
+    if (!error) {
+      setForm(INITIAL_FORM);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 4000);
+      fetchSolicitudes();
+    }
   };
 
-  const updateEstado = (id, nuevoEstado) => {
-    setSolicitudes(solicitudes.map((s) => s.id === id ? { ...s, estado: nuevoEstado, ...(nuevoEstado === "Aprobada" ? { aprobadoPor: "Mariana R.", fechaAprobacion: new Date().toISOString().split("T")[0] } : {}) } : s));
+  const updateEstado = async (id, nuevoEstado) => {
+    const updates = { estado: nuevoEstado };
+    if (nuevoEstado === "Aprobada") {
+      updates.aprobado_por = "Mariana R.";
+      updates.fecha_aprobacion = new Date().toISOString().split("T")[0];
+    }
+    const { error } = await supabase.from('solicitudes').update(updates).eq('id', id);
+    if (!error) fetchSolicitudes();
   };
 
   const filtered = solicitudes.filter((s) => {
     if (filterEstado !== "Todos" && s.estado !== filterEstado) return false;
-    if (filterMes !== "Todos" && s.mesFacturacion !== filterMes) return false;
+    if (filterMes !== "Todos" && s.mes_facturacion !== filterMes) return false;
     return true;
   });
 
@@ -152,7 +173,7 @@ export default function App() {
 
   const exportCSV = () => {
     const headers = ["ID", "Fecha", "Solicitado Por", "Cliente", "Concepto", "Proyecto", "Tipo Servicio", "Valor", "Moneda", "IVA", "Retención", "Forma Pago", "Estado", "Aprobado Por", "Fecha Aprobación", "# Factura", "Fecha Facturación", "Mes", "Observaciones"];
-    const rows = filtered.map((s) => [`FAC-${String(s.id).padStart(3, "0")}`, s.fecha, s.solicitadoPor, s.cliente, s.concepto, s.proyecto, s.tipoServicio, s.valor, s.moneda, s.incluyeIva ? "Sí" : "No", s.aplicaRetencion ? "Sí" : "No", s.formaPago, s.estado, s.aprobadoPor || "", s.fechaAprobacion || "", s.numFactura || "", s.fechaFacturacion || "", s.mesFacturacion, s.observaciones]);
+    const rows = filtered.map((s) => [`FAC-${String(s.id).padStart(3, "0")}`, s.fecha, s.solicitado_por, s.cliente, s.concepto, s.proyecto, s.tipo_servicio, s.valor, s.moneda, s.incluye_iva ? "Sí" : "No", s.aplica_retencion ? "Sí" : "No", s.forma_pago, s.estado, s.aprobado_por || "", s.fecha_aprobacion || "", s.num_factura || "", s.fecha_facturacion || "", s.mes_facturacion, s.observaciones]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -169,9 +190,19 @@ export default function App() {
     { id: "approval", label: "Aprobar", count: pendientes.length, alert: pendientes.length > 0, icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>) },
   ];
 
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{backgroundColor: '#FAFAFA'}}>
+      <div className="text-center">
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg mx-auto mb-4" style={{backgroundColor: FLASH_RED}}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <p className="text-sm text-gray-400 font-medium">Cargando solicitudes...</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen" style={{backgroundColor: '#FAFAFA'}}>
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
@@ -187,7 +218,7 @@ export default function App() {
             <nav className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
               {navItems.map((item) => (
                 <button key={item.id} onClick={() => setView(item.id)}
-                  className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
+                  className="relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
                   style={view === item.id ? {backgroundColor: 'white', color: FLASH_RED, boxShadow: '0 1px 3px rgba(0,0,0,0.08)'} : {color: '#6B7280'}}>
                   <span className="hidden sm:inline">{item.icon}</span>
                   <span>{item.label}</span>
@@ -201,7 +232,6 @@ export default function App() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
 
-        {/* ============ FORM VIEW ============ */}
         {view === "form" && (
           <div className="max-w-2xl mx-auto">
             {success && (
@@ -212,15 +242,12 @@ export default function App() {
                 <div><p className="text-sm text-emerald-800 font-semibold">Solicitud enviada</p><p className="text-xs text-emerald-600">Queda pendiente de aprobación por Mariana.</p></div>
               </div>
             )}
-
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-6 py-5" style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`}}>
                 <h2 className="text-lg font-bold text-white">Nueva Solicitud de Facturación</h2>
                 <p className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.8)'}}>Llena los datos y envía. Mariana recibirá la solicitud para aprobación.</p>
               </div>
-
               <div className="p-6 space-y-7">
-                {/* Cliente */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{backgroundColor: FLASH_RED_LIGHT}}>
@@ -230,10 +257,7 @@ export default function App() {
                   </div>
                   <InputField label="Cliente / Razón Social" value={form.cliente} onChange={set("cliente")} placeholder="Ej: Bancoldex S.A." required />
                 </div>
-
                 <hr className="border-gray-100" />
-
-                {/* Servicio */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{backgroundColor: '#FFF3E0'}}>
@@ -249,10 +273,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
                 <hr className="border-gray-100" />
-
-                {/* Valores */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{backgroundColor: '#E8F5E9'}}>
@@ -279,34 +300,22 @@ export default function App() {
                     </label>
                   </div>
                 </div>
-
                 <hr className="border-gray-100" />
-
-                {/* Observaciones */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Observaciones</label>
-                  <textarea
-                    value={form.observaciones}
-                    onChange={set("observaciones")}
-                    placeholder="Notas adicionales para contabilidad..."
-                    rows={3}
+                  <textarea value={form.observaciones} onChange={set("observaciones")} placeholder="Notas adicionales para contabilidad..." rows={3}
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all resize-none"
                     onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
                     onBlur={(e) => e.target.style.boxShadow = 'none'}
                   />
                 </div>
-
-                {/* Preview */}
                 {form.valor && form.cliente && (
                   <div className="rounded-xl p-4 border" style={{backgroundColor: FLASH_RED_LIGHT, borderColor: '#FFCDD2'}}>
                     <p className="text-xs mb-1" style={{color: '#B71C1C'}}>Resumen de solicitud</p>
                     <p className="text-sm text-gray-800">Facturar a <strong>{form.cliente}</strong> por <strong>{formatCurrency(form.valor, form.moneda)}</strong> {form.moneda}{form.incluyeIva ? " (IVA incluido)" : " (sin IVA)"}{form.concepto && <> — {form.concepto}</>}</p>
                   </div>
                 )}
-
-                {/* Submit */}
-                <button
-                  onClick={handleSubmit}
+                <button onClick={handleSubmit}
                   disabled={!form.cliente || !form.concepto || !form.valor || !form.tipoServicio || !form.mesFacturacion}
                   className="w-full py-3.5 text-white font-semibold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
                   style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`, boxShadow: '0 4px 14px rgba(229, 57, 53, 0.3)'}}>
@@ -317,7 +326,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ============ LIST VIEW ============ */}
         {view === "list" && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -326,7 +334,6 @@ export default function App() {
               <KpiCard label="Facturado" value={formatCurrency(totalFacturado, "COP")} subtitle="facturas emitidas" color="#2E7D32" />
               <KpiCard label="Pendientes" value={pendientes.length} subtitle="por aprobar" color="#E65100" />
             </div>
-
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none transition-all" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}><option value="Todos">Todos los estados</option>{ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}</select>
@@ -337,8 +344,7 @@ export default function App() {
                 <button onClick={exportCSV} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 transition-all active:scale-95"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
               </div>
             </div>
-
-            {filtered.length === 0 ? (<div className="bg-white rounded-2xl border border-gray-100 p-12 text-center"><p className="text-gray-400">No hay solicitudes con estos filtros.</p></div>) : (
+            {filtered.length === 0 ? (<div className="bg-white rounded-2xl border border-gray-100 p-12 text-center"><p className="text-gray-400">No hay solicitudes{filterEstado !== 'Todos' || filterMes !== 'Todos' ? ' con estos filtros' : ' aún. Crea la primera desde "Nueva Solicitud"'}.</p></div>) : (
               filtered.map((s) => (
                 <div key={s.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)} style={{borderLeft: `4px solid ${ESTADO_COLORS[s.estado]?.dot || '#ccc'}`}}>
                   <div className="p-5">
@@ -347,33 +353,32 @@ export default function App() {
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded">FAC-{String(s.id).padStart(3, "0")}</span>
                           <Badge estado={s.estado} />
-                          {s.incluyeIva && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">IVA</span>}
-                          {s.aplicaRetencion && <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-medium">RETENCIÓN</span>}
+                          {s.incluye_iva && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">IVA</span>}
+                          {s.aplica_retencion && <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-medium">RETENCIÓN</span>}
                         </div>
                         <h3 className="text-base font-semibold text-gray-900 truncate">{s.cliente}</h3>
                         <p className="text-sm text-gray-500 mt-0.5 truncate">{s.concepto}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-lg font-bold text-gray-900">{formatCurrency(s.valor, s.moneda)}</p>
-                        <p className="text-xs text-gray-400">{s.moneda} · {s.mesFacturacion}</p>
+                        <p className="text-xs text-gray-400">{s.moneda} · {s.mes_facturacion}</p>
                       </div>
                     </div>
                     <div className="mt-3 flex items-center gap-3 text-xs text-gray-400 flex-wrap">
-                      <span>Por <strong className="text-gray-500">{s.solicitadoPor}</strong></span>
+                      <span>Por <strong className="text-gray-500">{s.solicitado_por}</strong></span>
                       <span className="w-1 h-1 rounded-full bg-gray-300" />
                       <span>{s.fecha}</span>
-                      {s.tipoServicio && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="px-2 py-0.5 bg-gray-100 rounded-md text-gray-500">{s.tipoServicio}</span></>}
-                      {s.numFactura && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="text-emerald-600 font-semibold">{s.numFactura}</span></>}
+                      {s.tipo_servicio && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="px-2 py-0.5 bg-gray-100 rounded-md text-gray-500">{s.tipo_servicio}</span></>}
+                      {s.num_factura && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="text-emerald-600 font-semibold">{s.num_factura}</span></>}
                     </div>
-
                     {expandedId === s.id && (
                       <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
                         <div><span className="text-gray-400">Proyecto:</span> <span className="text-gray-700">{s.proyecto || "—"}</span></div>
-                        <div><span className="text-gray-400">Forma Pago:</span> <span className="text-gray-700">{s.formaPago || "—"}</span></div>
-                        <div><span className="text-gray-400">IVA:</span> <span className="text-gray-700">{s.incluyeIva ? "Sí" : "No"}</span></div>
-                        <div><span className="text-gray-400">Retención:</span> <span className="text-gray-700">{s.aplicaRetencion ? "Sí" : "No"}</span></div>
-                        {s.aprobadoPor && <div><span className="text-gray-400">Aprobó:</span> <span className="text-gray-700">{s.aprobadoPor} ({s.fechaAprobacion})</span></div>}
-                        {s.numFactura && <div><span className="text-gray-400">Factura:</span> <span className="text-gray-700">{s.numFactura} ({s.fechaFacturacion})</span></div>}
+                        <div><span className="text-gray-400">Forma Pago:</span> <span className="text-gray-700">{s.forma_pago || "—"}</span></div>
+                        <div><span className="text-gray-400">IVA:</span> <span className="text-gray-700">{s.incluye_iva ? "Sí" : "No"}</span></div>
+                        <div><span className="text-gray-400">Retención:</span> <span className="text-gray-700">{s.aplica_retencion ? "Sí" : "No"}</span></div>
+                        {s.aprobado_por && <div><span className="text-gray-400">Aprobó:</span> <span className="text-gray-700">{s.aprobado_por} ({s.fecha_aprobacion})</span></div>}
+                        {s.num_factura && <div><span className="text-gray-400">Factura:</span> <span className="text-gray-700">{s.num_factura} ({s.fecha_facturacion})</span></div>}
                         {s.observaciones && <div className="col-span-2"><span className="text-gray-400">Notas:</span> <span className="text-gray-700">{s.observaciones}</span></div>}
                       </div>
                     )}
@@ -384,7 +389,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ============ APPROVAL VIEW ============ */}
         {view === "approval" && (
           <div className="space-y-5">
             <div className="rounded-2xl p-5 border" style={{background: 'linear-gradient(135deg, #FFF3E0 0%, #FBE9E7 100%)', borderColor: '#FFCCBC'}}>
@@ -396,7 +400,6 @@ export default function App() {
                 </div>
               </div>
             </div>
-
             {pendientes.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
                 <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -409,23 +412,21 @@ export default function App() {
                   <div className="p-6">
                     <div className="flex items-start justify-between gap-4 mb-4">
                       <div>
-                        <div className="flex items-center gap-2 mb-1"><span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded">FAC-{String(s.id).padStart(3, "0")}</span><span className="text-xs text-gray-400">Solicitado por <strong className="text-gray-600">{s.solicitadoPor}</strong> el {s.fecha}</span></div>
+                        <div className="flex items-center gap-2 mb-1"><span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded">FAC-{String(s.id).padStart(3, "0")}</span><span className="text-xs text-gray-400">Solicitado por <strong className="text-gray-600">{s.solicitado_por}</strong> el {s.fecha}</span></div>
                         <h3 className="text-lg font-bold text-gray-900 mt-1">{s.cliente}</h3>
                       </div>
-                      <div className="text-right flex-shrink-0"><p className="text-2xl font-bold text-gray-900">{formatCurrency(s.valor, s.moneda)}</p><p className="text-xs text-gray-400">{s.moneda}{s.incluyeIva ? " · IVA incluido" : ""}</p></div>
+                      <div className="text-right flex-shrink-0"><p className="text-2xl font-bold text-gray-900">{formatCurrency(s.valor, s.moneda)}</p><p className="text-xs text-gray-400">{s.moneda}{s.incluye_iva ? " · IVA incluido" : ""}</p></div>
                     </div>
-
                     <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
                       <div className="flex justify-between text-sm"><span className="text-gray-400">Concepto</span><span className="text-gray-800 font-medium text-right max-w-[60%]">{s.concepto}</span></div>
                       {s.proyecto && <div className="flex justify-between text-sm"><span className="text-gray-400">Proyecto</span><span className="text-gray-700">{s.proyecto}</span></div>}
-                      <div className="flex justify-between text-sm"><span className="text-gray-400">Tipo de Servicio</span><span className="text-gray-700">{s.tipoServicio}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-gray-400">Forma de Pago</span><span className="text-gray-700">{s.formaPago || "—"}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-gray-400">Mes de Facturación</span><span className="text-gray-700 font-medium">{s.mesFacturacion}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-gray-400">IVA</span><span className="text-gray-700">{s.incluyeIva ? "Sí incluye" : "No incluye"}</span></div>
-                      {s.aplicaRetencion && <div className="flex justify-between text-sm"><span className="text-gray-400">Retención</span><span className="text-amber-600 font-medium">Sí aplica</span></div>}
+                      <div className="flex justify-between text-sm"><span className="text-gray-400">Tipo de Servicio</span><span className="text-gray-700">{s.tipo_servicio}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-gray-400">Forma de Pago</span><span className="text-gray-700">{s.forma_pago || "—"}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-gray-400">Mes de Facturación</span><span className="text-gray-700 font-medium">{s.mes_facturacion}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-gray-400">IVA</span><span className="text-gray-700">{s.incluye_iva ? "Sí incluye" : "No incluye"}</span></div>
+                      {s.aplica_retencion && <div className="flex justify-between text-sm"><span className="text-gray-400">Retención</span><span className="text-amber-600 font-medium">Sí aplica</span></div>}
                       {s.observaciones && <div className="flex justify-between text-sm"><span className="text-gray-400">Notas</span><span className="text-gray-700 text-right max-w-[60%]">{s.observaciones}</span></div>}
                     </div>
-
                     <div className="flex gap-3 mt-5">
                       <button onClick={() => updateEstado(s.id, "Aprobada")} className="flex-1 py-3 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]" style={{background: 'linear-gradient(135deg, #43A047 0%, #2E7D32 100%)', boxShadow: '0 4px 14px rgba(46, 125, 50, 0.3)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Aprobar</button>
                       <button onClick={() => updateEstado(s.id, "Rechazada")} className="px-6 py-3 bg-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]" style={{border: `2px solid ${FLASH_RED}40`, color: FLASH_RED}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rechazar</button>
@@ -438,7 +439,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="mt-12 py-4" style={{borderTop: `3px solid ${FLASH_RED}`}}>
         <p className="text-center text-xs text-gray-400 font-medium">FLASH · Asesoría Digital SAS · Sistema de Facturación</p>
       </footer>
