@@ -1,14 +1,21 @@
 import { useState } from "react";
 
 const INITIAL_FORM = {
-  cliente: "", nit: "", concepto: "", proyecto: "", tipoServicio: "",
-  centroCosto: "", valor: "", moneda: "COP", aplicaRetencion: false,
-  formaPago: "", mesFacturacion: "", observaciones: "",
+  cliente: "",
+  concepto: "",
+  proyecto: "",
+  tipoServicio: "",
+  valor: "",
+  moneda: "COP",
+  aplicaRetencion: false,
+  incluyeIva: false,
+  formaPago: "",
+  mesFacturacion: "",
+  observaciones: "",
 };
 
 const TIPOS_SERVICIO = ["Fee Mensual", "Proyecto Puntual", "Pauta Digital", "Consultoría", "Producción", "Otro"];
-const CENTROS_COSTO = ["Flash General", "Marketing Digital", "Producción", "Consultoría", "Pauta"];
-const FORMAS_PAGO = ["Transferencia", "Cheque", "Crédito 30 días", "Crédito 60 días", "Anticipado"];
+const FORMAS_PAGO = ["Crédito 30 días", "Crédito 60 días", "Anticipado"];
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const ESTADOS = ["Pendiente Aprobación", "Aprobada", "En Proceso Contabilidad", "Facturada", "Pagada", "Rechazada"];
 
@@ -31,9 +38,9 @@ function formatCurrency(val, moneda) {
   if (!val) return "";
   const num = parseFloat(val);
   if (isNaN(num)) return val;
-  return moneda === "COP"
-    ? `$ ${num.toLocaleString("es-CO", { minimumFractionDigits: 0 })}`
-    : `US$ ${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  if (moneda === "COP") return `$ ${num.toLocaleString("es-CO", { minimumFractionDigits: 0 })}`;
+  if (moneda === "USD") return `US$ ${num.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+  return `€ ${num.toLocaleString("de-DE", { minimumFractionDigits: 2 })}`;
 }
 
 function SelectField({ label, value, onChange, options, placeholder, required }) {
@@ -43,7 +50,13 @@ function SelectField({ label, value, onChange, options, placeholder, required })
         {label} {required && <span style={{color: FLASH_RED}}>*</span>}
       </label>
       <div className="relative">
-        <select value={value} onChange={onChange} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none pr-10" style={{"--tw-ring-color": FLASH_RED}} onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}>
+        <select
+          value={value}
+          onChange={onChange}
+          className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:border-transparent transition-all appearance-none pr-10"
+          style={{"--tw-ring-color": FLASH_RED}}
+          onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
+          onBlur={(e) => e.target.style.boxShadow = 'none'}>
           <option value="">{placeholder || "Seleccionar..."}</option>
           {options.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -61,7 +74,15 @@ function InputField({ label, value, onChange, placeholder, type = "text", requir
       </label>
       <div className="relative">
         {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">{prefix}</span>}
-        <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full ${prefix ? "pl-8" : "pl-3"} pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all`} onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'} />
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`w-full ${prefix ? "pl-8" : "pl-3"} pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all`}
+          onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
+          onBlur={(e) => e.target.style.boxShadow = 'none'}
+        />
       </div>
     </div>
   );
@@ -88,10 +109,10 @@ function KpiCard({ label, value, subtitle, color }) {
 }
 
 const DEMO_DATA = [
-  { id: 1, cliente: "Bancoldex", nit: "800.149.923-6", concepto: "Fee mensual abril — Marketing Digital", proyecto: "Marketing Digital Bancoldex", tipoServicio: "Fee Mensual", centroCosto: "Marketing Digital", valor: "12000000", moneda: "COP", aplicaRetencion: false, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "", estado: "Pendiente Aprobación", solicitadoPor: "Carolina M.", fecha: "2026-04-10" },
-  { id: 2, cliente: "Skandia", nit: "860.005.224-4", concepto: "Pauta digital abril", proyecto: "Pauta Skandia", tipoServicio: "Pauta Digital", centroCosto: "Pauta", valor: "8500000", moneda: "COP", aplicaRetencion: true, formaPago: "Anticipado", mesFacturacion: "Abril", observaciones: "", estado: "Aprobada", solicitadoPor: "Andrés R.", fecha: "2026-04-08", aprobadoPor: "Mariana R.", fechaAprobacion: "2026-04-09" },
-  { id: 3, cliente: "Claro Colombia", nit: "830.114.921-1", concepto: "Producción campaña Vive Claro", proyecto: "Campaña Vive Claro", tipoServicio: "Producción", centroCosto: "Producción", valor: "25000000", moneda: "COP", aplicaRetencion: false, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "", estado: "Facturada", solicitadoPor: "Carolina M.", fecha: "2026-04-01", aprobadoPor: "Mariana R.", fechaAprobacion: "2026-04-02", numFactura: "FAC-0341", fechaFacturacion: "2026-04-05" },
-  { id: 4, cliente: "AYR España", nit: "B-12345678", concepto: "Consultoría estrategia digital Q2", proyecto: "Estrategia AYR 2026", tipoServicio: "Consultoría", centroCosto: "Consultoría", valor: "5200", moneda: "USD", aplicaRetencion: false, formaPago: "Transferencia", mesFacturacion: "Abril", observaciones: "Facturar en USD a cuenta española", estado: "Pendiente Aprobación", solicitadoPor: "Mariana R.", fecha: "2026-04-12" },
+  { id: 1, cliente: "Bancoldex", concepto: "Fee mensual abril — Marketing Digital", proyecto: "Marketing Digital Bancoldex", tipoServicio: "Fee Mensual", valor: "12000000", moneda: "COP", aplicaRetencion: false, incluyeIva: true, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "", estado: "Pendiente Aprobación", solicitadoPor: "Carolina M.", fecha: "2026-04-10" },
+  { id: 2, cliente: "Skandia", concepto: "Pauta digital abril", proyecto: "Pauta Skandia", tipoServicio: "Pauta Digital", valor: "8500000", moneda: "COP", aplicaRetencion: true, incluyeIva: true, formaPago: "Anticipado", mesFacturacion: "Abril", observaciones: "", estado: "Aprobada", solicitadoPor: "Andrés R.", fecha: "2026-04-08", aprobadoPor: "Mariana R.", fechaAprobacion: "2026-04-09" },
+  { id: 3, cliente: "Claro Colombia", concepto: "Producción campaña Vive Claro", proyecto: "Campaña Vive Claro", tipoServicio: "Producción", valor: "25000000", moneda: "COP", aplicaRetencion: false, incluyeIva: false, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "", estado: "Facturada", solicitadoPor: "Carolina M.", fecha: "2026-04-01", aprobadoPor: "Mariana R.", fechaAprobacion: "2026-04-02", numFactura: "FAC-0341", fechaFacturacion: "2026-04-05" },
+  { id: 4, cliente: "AYR España", concepto: "Consultoría estrategia digital Q2", proyecto: "Estrategia AYR 2026", tipoServicio: "Consultoría", valor: "5200", moneda: "EUR", aplicaRetencion: false, incluyeIva: false, formaPago: "Crédito 30 días", mesFacturacion: "Abril", observaciones: "Facturar en EUR a cuenta española", estado: "Pendiente Aprobación", solicitadoPor: "Mariana R.", fecha: "2026-04-12" },
 ];
 
 export default function App() {
@@ -104,6 +125,7 @@ export default function App() {
   const [expandedId, setExpandedId] = useState(null);
 
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+
   const pendientes = solicitudes.filter((s) => s.estado === "Pendiente Aprobación");
 
   const handleSubmit = () => {
@@ -129,8 +151,8 @@ export default function App() {
   const totalFacturado = solicitudes.filter(s => s.estado === "Facturada" || s.estado === "Pagada").reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0);
 
   const exportCSV = () => {
-    const headers = ["ID", "Fecha", "Solicitado Por", "Cliente", "NIT", "Concepto", "Proyecto", "Tipo Servicio", "Centro Costo", "Valor", "Moneda", "Retención", "Forma Pago", "Estado", "Aprobado Por", "Fecha Aprobación", "# Factura", "Fecha Facturación", "Mes", "Observaciones"];
-    const rows = filtered.map((s) => [`FAC-${String(s.id).padStart(3, "0")}`, s.fecha, s.solicitadoPor, s.cliente, s.nit, s.concepto, s.proyecto, s.tipoServicio, s.centroCosto, s.valor, s.moneda, s.aplicaRetencion ? "Sí" : "No", s.formaPago, s.estado, s.aprobadoPor || "", s.fechaAprobacion || "", s.numFactura || "", s.fechaFacturacion || "", s.mesFacturacion, s.observaciones]);
+    const headers = ["ID", "Fecha", "Solicitado Por", "Cliente", "Concepto", "Proyecto", "Tipo Servicio", "Valor", "Moneda", "IVA", "Retención", "Forma Pago", "Estado", "Aprobado Por", "Fecha Aprobación", "# Factura", "Fecha Facturación", "Mes", "Observaciones"];
+    const rows = filtered.map((s) => [`FAC-${String(s.id).padStart(3, "0")}`, s.fecha, s.solicitadoPor, s.cliente, s.concepto, s.proyecto, s.tipoServicio, s.valor, s.moneda, s.incluyeIva ? "Sí" : "No", s.aplicaRetencion ? "Sí" : "No", s.formaPago, s.estado, s.aprobadoPor || "", s.fechaAprobacion || "", s.numFactura || "", s.fechaFacturacion || "", s.mesFacturacion, s.observaciones]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -149,7 +171,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen" style={{backgroundColor: '#FAFAFA'}}>
-      {/* Header — Flash Red */}
+      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
@@ -164,7 +186,9 @@ export default function App() {
             </div>
             <nav className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
               {navItems.map((item) => (
-                <button key={item.id} onClick={() => setView(item.id)} className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`} style={view === item.id ? {backgroundColor: 'white', color: FLASH_RED, boxShadow: '0 1px 3px rgba(0,0,0,0.08)'} : {color: '#6B7280'}}>
+                <button key={item.id} onClick={() => setView(item.id)}
+                  className={`relative px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2`}
+                  style={view === item.id ? {backgroundColor: 'white', color: FLASH_RED, boxShadow: '0 1px 3px rgba(0,0,0,0.08)'} : {color: '#6B7280'}}>
                   <span className="hidden sm:inline">{item.icon}</span>
                   <span>{item.label}</span>
                   {item.count !== undefined && (<span className="text-[11px] px-1.5 py-0.5 rounded-full font-semibold" style={item.alert ? {backgroundColor: '#FEF3C7', color: '#92400E'} : {backgroundColor: '#F3F4F6', color: '#6B7280'}}>{item.count}</span>)}
@@ -176,6 +200,7 @@ export default function App() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+
         {/* ============ FORM VIEW ============ */}
         {view === "form" && (
           <div className="max-w-2xl mx-auto">
@@ -187,12 +212,13 @@ export default function App() {
                 <div><p className="text-sm text-emerald-800 font-semibold">Solicitud enviada</p><p className="text-xs text-emerald-600">Queda pendiente de aprobación por Mariana.</p></div>
               </div>
             )}
+
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              {/* Form header — Flash Red gradient */}
               <div className="px-6 py-5" style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`}}>
                 <h2 className="text-lg font-bold text-white">Nueva Solicitud de Facturación</h2>
                 <p className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.8)'}}>Llena los datos y envía. Mariana recibirá la solicitud para aprobación.</p>
               </div>
+
               <div className="p-6 space-y-7">
                 {/* Cliente */}
                 <div>
@@ -202,12 +228,11 @@ export default function App() {
                     </span>
                     <p className="text-xs font-semibold uppercase tracking-wider" style={{color: FLASH_RED}}>Datos del Cliente</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Cliente / Razón Social" value={form.cliente} onChange={set("cliente")} placeholder="Ej: Bancoldex S.A." required />
-                    <InputField label="NIT / Identificación" value={form.nit} onChange={set("nit")} placeholder="Ej: 800.149.923-6" />
-                  </div>
+                  <InputField label="Cliente / Razón Social" value={form.cliente} onChange={set("cliente")} placeholder="Ej: Bancoldex S.A." required />
                 </div>
+
                 <hr className="border-gray-100" />
+
                 {/* Servicio */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -222,10 +247,11 @@ export default function App() {
                       <InputField label="Proyecto Asociado" value={form.proyecto} onChange={set("proyecto")} placeholder="Ej: Marketing Bancoldex" />
                       <SelectField label="Tipo de Servicio" value={form.tipoServicio} onChange={set("tipoServicio")} options={TIPOS_SERVICIO} required />
                     </div>
-                    <SelectField label="Centro de Costo" value={form.centroCosto} onChange={set("centroCosto")} options={CENTROS_COSTO} />
                   </div>
                 </div>
+
                 <hr className="border-gray-100" />
+
                 {/* Valores */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -236,32 +262,56 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField label="Valor a Facturar" value={form.valor} onChange={set("valor")} placeholder="Ej: 12000000" type="number" required prefix="$" />
-                    <SelectField label="Moneda" value={form.moneda} onChange={set("moneda")} options={["COP", "USD"]} />
+                    <SelectField label="Moneda" value={form.moneda} onChange={set("moneda")} options={["COP", "USD", "EUR"]} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <SelectField label="Forma de Pago" value={form.formaPago} onChange={set("formaPago")} options={FORMAS_PAGO} />
                     <SelectField label="Mes de Facturación" value={form.mesFacturacion} onChange={set("mesFacturacion")} options={MESES} required />
                   </div>
-                  <label className="mt-4 flex items-center gap-2.5 cursor-pointer group">
-                    <input type="checkbox" checked={form.aplicaRetencion} onChange={set("aplicaRetencion")} className="w-4 h-4 rounded border-gray-300" style={{accentColor: FLASH_RED}} />
-                    <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">Aplica retención en la fuente</span>
-                  </label>
+                  <div className="mt-4 flex flex-col gap-3">
+                    <label className="flex items-center gap-2.5 cursor-pointer group">
+                      <input type="checkbox" checked={form.incluyeIva} onChange={set("incluyeIva")} className="w-4 h-4 rounded border-gray-300" style={{accentColor: FLASH_RED}} />
+                      <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">Incluye IVA</span>
+                    </label>
+                    <label className="flex items-center gap-2.5 cursor-pointer group">
+                      <input type="checkbox" checked={form.aplicaRetencion} onChange={set("aplicaRetencion")} className="w-4 h-4 rounded border-gray-300" style={{accentColor: FLASH_RED}} />
+                      <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">Aplica retención en la fuente</span>
+                    </label>
+                  </div>
                 </div>
+
                 <hr className="border-gray-100" />
+
                 {/* Observaciones */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium text-gray-700">Observaciones</label>
-                  <textarea value={form.observaciones} onChange={set("observaciones")} placeholder="Notas adicionales para contabilidad..." rows={3} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all resize-none" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'} />
+                  <textarea
+                    value={form.observaciones}
+                    onChange={set("observaciones")}
+                    placeholder="Notas adicionales para contabilidad..."
+                    rows={3}
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all resize-none"
+                    onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
+                    onBlur={(e) => e.target.style.boxShadow = 'none'}
+                  />
                 </div>
+
                 {/* Preview */}
                 {form.valor && form.cliente && (
                   <div className="rounded-xl p-4 border" style={{backgroundColor: FLASH_RED_LIGHT, borderColor: '#FFCDD2'}}>
                     <p className="text-xs mb-1" style={{color: '#B71C1C'}}>Resumen de solicitud</p>
-                    <p className="text-sm text-gray-800">Facturar a <strong>{form.cliente}</strong> por <strong>{formatCurrency(form.valor, form.moneda)}</strong> {form.moneda}{form.concepto && <> — {form.concepto}</>}</p>
+                    <p className="text-sm text-gray-800">Facturar a <strong>{form.cliente}</strong> por <strong>{formatCurrency(form.valor, form.moneda)}</strong> {form.moneda}{form.incluyeIva ? " (IVA incluido)" : " (sin IVA)"}{form.concepto && <> — {form.concepto}</>}</p>
                   </div>
                 )}
-                {/* Submit — Flash Red */}
-                <button onClick={handleSubmit} disabled={!form.cliente || !form.concepto || !form.valor || !form.tipoServicio || !form.mesFacturacion} className="w-full py-3.5 text-white font-semibold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]" style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`, boxShadow: '0 4px 14px rgba(229, 57, 53, 0.3)'}}>Enviar Solicitud de Facturación</button>
+
+                {/* Submit */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={!form.cliente || !form.concepto || !form.valor || !form.tipoServicio || !form.mesFacturacion}
+                  className="w-full py-3.5 text-white font-semibold rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                  style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`, boxShadow: '0 4px 14px rgba(229, 57, 53, 0.3)'}}>
+                  Enviar Solicitud de Facturación
+                </button>
               </div>
             </div>
           </div>
@@ -276,6 +326,7 @@ export default function App() {
               <KpiCard label="Facturado" value={formatCurrency(totalFacturado, "COP")} subtitle="facturas emitidas" color="#2E7D32" />
               <KpiCard label="Pendientes" value={pendientes.length} subtitle="por aprobar" color="#E65100" />
             </div>
+
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
                 <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none transition-all" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}><option value="Todos">Todos los estados</option>{ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}</select>
@@ -286,6 +337,7 @@ export default function App() {
                 <button onClick={exportCSV} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 transition-all active:scale-95"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
               </div>
             </div>
+
             {filtered.length === 0 ? (<div className="bg-white rounded-2xl border border-gray-100 p-12 text-center"><p className="text-gray-400">No hay solicitudes con estos filtros.</p></div>) : (
               filtered.map((s) => (
                 <div key={s.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer" onClick={() => setExpandedId(expandedId === s.id ? null : s.id)} style={{borderLeft: `4px solid ${ESTADO_COLORS[s.estado]?.dot || '#ccc'}`}}>
@@ -295,6 +347,7 @@ export default function App() {
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded">FAC-{String(s.id).padStart(3, "0")}</span>
                           <Badge estado={s.estado} />
+                          {s.incluyeIva && <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">IVA</span>}
                           {s.aplicaRetencion && <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full font-medium">RETENCIÓN</span>}
                         </div>
                         <h3 className="text-base font-semibold text-gray-900 truncate">{s.cliente}</h3>
@@ -312,12 +365,13 @@ export default function App() {
                       {s.tipoServicio && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="px-2 py-0.5 bg-gray-100 rounded-md text-gray-500">{s.tipoServicio}</span></>}
                       {s.numFactura && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="text-emerald-600 font-semibold">{s.numFactura}</span></>}
                     </div>
+
                     {expandedId === s.id && (
                       <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
-                        <div><span className="text-gray-400">NIT:</span> <span className="text-gray-700">{s.nit || "—"}</span></div>
                         <div><span className="text-gray-400">Proyecto:</span> <span className="text-gray-700">{s.proyecto || "—"}</span></div>
-                        <div><span className="text-gray-400">Centro Costo:</span> <span className="text-gray-700">{s.centroCosto || "—"}</span></div>
                         <div><span className="text-gray-400">Forma Pago:</span> <span className="text-gray-700">{s.formaPago || "—"}</span></div>
+                        <div><span className="text-gray-400">IVA:</span> <span className="text-gray-700">{s.incluyeIva ? "Sí" : "No"}</span></div>
+                        <div><span className="text-gray-400">Retención:</span> <span className="text-gray-700">{s.aplicaRetencion ? "Sí" : "No"}</span></div>
                         {s.aprobadoPor && <div><span className="text-gray-400">Aprobó:</span> <span className="text-gray-700">{s.aprobadoPor} ({s.fechaAprobacion})</span></div>}
                         {s.numFactura && <div><span className="text-gray-400">Factura:</span> <span className="text-gray-700">{s.numFactura} ({s.fechaFacturacion})</span></div>}
                         {s.observaciones && <div className="col-span-2"><span className="text-gray-400">Notas:</span> <span className="text-gray-700">{s.observaciones}</span></div>}
@@ -342,6 +396,7 @@ export default function App() {
                 </div>
               </div>
             </div>
+
             {pendientes.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
                 <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-5"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
@@ -356,20 +411,21 @@ export default function App() {
                       <div>
                         <div className="flex items-center gap-2 mb-1"><span className="text-xs font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded">FAC-{String(s.id).padStart(3, "0")}</span><span className="text-xs text-gray-400">Solicitado por <strong className="text-gray-600">{s.solicitadoPor}</strong> el {s.fecha}</span></div>
                         <h3 className="text-lg font-bold text-gray-900 mt-1">{s.cliente}</h3>
-                        {s.nit && <p className="text-sm text-gray-500">NIT: {s.nit}</p>}
                       </div>
-                      <div className="text-right flex-shrink-0"><p className="text-2xl font-bold text-gray-900">{formatCurrency(s.valor, s.moneda)}</p><p className="text-xs text-gray-400">{s.moneda}</p></div>
+                      <div className="text-right flex-shrink-0"><p className="text-2xl font-bold text-gray-900">{formatCurrency(s.valor, s.moneda)}</p><p className="text-xs text-gray-400">{s.moneda}{s.incluyeIva ? " · IVA incluido" : ""}</p></div>
                     </div>
+
                     <div className="bg-gray-50 rounded-xl p-4 space-y-2.5">
                       <div className="flex justify-between text-sm"><span className="text-gray-400">Concepto</span><span className="text-gray-800 font-medium text-right max-w-[60%]">{s.concepto}</span></div>
                       {s.proyecto && <div className="flex justify-between text-sm"><span className="text-gray-400">Proyecto</span><span className="text-gray-700">{s.proyecto}</span></div>}
                       <div className="flex justify-between text-sm"><span className="text-gray-400">Tipo de Servicio</span><span className="text-gray-700">{s.tipoServicio}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-gray-400">Centro de Costo</span><span className="text-gray-700">{s.centroCosto || "—"}</span></div>
                       <div className="flex justify-between text-sm"><span className="text-gray-400">Forma de Pago</span><span className="text-gray-700">{s.formaPago || "—"}</span></div>
                       <div className="flex justify-between text-sm"><span className="text-gray-400">Mes de Facturación</span><span className="text-gray-700 font-medium">{s.mesFacturacion}</span></div>
+                      <div className="flex justify-between text-sm"><span className="text-gray-400">IVA</span><span className="text-gray-700">{s.incluyeIva ? "Sí incluye" : "No incluye"}</span></div>
                       {s.aplicaRetencion && <div className="flex justify-between text-sm"><span className="text-gray-400">Retención</span><span className="text-amber-600 font-medium">Sí aplica</span></div>}
                       {s.observaciones && <div className="flex justify-between text-sm"><span className="text-gray-400">Notas</span><span className="text-gray-700 text-right max-w-[60%]">{s.observaciones}</span></div>}
                     </div>
+
                     <div className="flex gap-3 mt-5">
                       <button onClick={() => updateEstado(s.id, "Aprobada")} className="flex-1 py-3 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]" style={{background: 'linear-gradient(135deg, #43A047 0%, #2E7D32 100%)', boxShadow: '0 4px 14px rgba(46, 125, 50, 0.3)'}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Aprobar</button>
                       <button onClick={() => updateEstado(s.id, "Rechazada")} className="px-6 py-3 bg-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]" style={{border: `2px solid ${FLASH_RED}40`, color: FLASH_RED}}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rechazar</button>
@@ -382,7 +438,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer — Flash Red accent line */}
+      {/* Footer */}
       <footer className="mt-12 py-4" style={{borderTop: `3px solid ${FLASH_RED}`}}>
         <p className="text-center text-xs text-gray-400 font-medium">FLASH · Asesoría Digital SAS · Sistema de Facturación</p>
       </footer>
