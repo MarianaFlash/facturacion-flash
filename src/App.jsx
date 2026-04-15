@@ -110,6 +110,7 @@ export default function App() {
   const [filterEstado, setFilterEstado] = useState("Todos");
   const [filterMes, setFilterMes] = useState("Todos");
   const [expandedId, setExpandedId] = useState(null);
+  const [sheetsCopied, setSheetsCopied] = useState(false);
 
   // Fetch solicitudes from Supabase
   const fetchSolicitudes = async () => {
@@ -182,6 +183,20 @@ export default function App() {
     a.download = `facturacion_flash_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const exportToGoogleSheets = async () => {
+    const headers = ["ID", "Fecha", "Solicitado Por", "Cliente", "Concepto", "Proyecto", "Tipo Servicio", "Valor", "Moneda", "IVA", "Retención", "Forma Pago", "Estado", "Aprobado Por", "Fecha Aprobación", "# Factura", "Fecha Facturación", "Mes", "Observaciones"];
+    const rows = solicitudes.map((s) => [`FAC-${String(s.id).padStart(3, "0")}`, s.fecha || "", s.solicitado_por || "", s.cliente || "", s.concepto || "", s.proyecto || "", s.tipo_servicio || "", s.valor || "", s.moneda || "", s.incluye_iva ? "Sí" : "No", s.aplica_retencion ? "Sí" : "No", s.forma_pago || "", s.estado || "", s.aprobado_por || "", s.fecha_aprobacion || "", s.num_factura || "", s.fecha_facturacion || "", s.mes_facturacion || "", s.observaciones || ""]);
+    const tsv = [headers.join("\t"), ...rows.map((r) => r.join("\t"))].join("\n");
+    try {
+      await navigator.clipboard.writeText(tsv);
+      setSheetsCopied(true);
+      setTimeout(() => setSheetsCopied(false), 8000);
+      window.open("https://docs.google.com/spreadsheets/create", "_blank");
+    } catch (err) {
+      exportCSV();
+    }
   };
 
   const navItems = [
@@ -341,7 +356,8 @@ export default function App() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-400">{filtered.length} resultados · <strong className="text-gray-700">{formatCurrency(totalFiltered, "COP")}</strong></span>
-                <button onClick={exportCSV} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 transition-all active:scale-95"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
+                <button onClick={exportCSV} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 transition-all active:scale-95"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>
+                <button onClick={exportToGoogleSheets} className="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all active:scale-95 border" style={{backgroundColor: '#E8F5E9', borderColor: '#A5D6A7', color: '#2E7D32'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0F9D58" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Google Sheets</button>
               </div>
             </div>
             {filtered.length === 0 ? (<div className="bg-white rounded-2xl border border-gray-100 p-12 text-center"><p className="text-gray-400">No hay solicitudes{filterEstado !== 'Todos' || filterMes !== 'Todos' ? ' con estos filtros' : ' aún. Crea la primera desde "Nueva Solicitud"'}.</p></div>) : (
@@ -438,6 +454,13 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {sheetsCopied && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3" style={{backgroundColor: '#1F2937', maxWidth: '90vw'}}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{backgroundColor: '#0F9D5830'}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0F9D58" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div><p className="text-sm font-semibold text-white">Datos copiados al portapapeles</p><p className="text-xs text-gray-400 mt-0.5">Pega con <strong className="text-gray-300">Ctrl+V</strong> (o Cmd+V en Mac) en el Google Sheet que se abrió.</p></div>
+        </div>
+      )}
 
       <footer className="mt-12 py-4" style={{borderTop: `3px solid ${FLASH_RED}`}}>
         <p className="text-center text-xs text-gray-400 font-medium">FLASH · Asesoría Digital SAS · Sistema de Facturación</p>
