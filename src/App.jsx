@@ -278,8 +278,9 @@ export default function App() {
 
   const navItems = [
     { id: "form", label: "Nueva Solicitud", icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>) },
-    { id: "list", label: "Solicitudes", count: solicitudes.length, icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>) },
     { id: "approval", label: "Aprobar", count: pendientes.length, alert: pendientes.length > 0, icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>) },
+    { id: "list", label: "Solicitudes", count: solicitudes.length, icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>) },
+    { id: "registro", label: "Registro", count: solicitudes.length, icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>) },
   ];
 
   if (loading) return (
@@ -555,6 +556,80 @@ export default function App() {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {view === "registro" && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <KpiCard label="Total registros" value={solicitudes.length} subtitle="en la base de datos" color={FLASH_RED} />
+              <KpiCard label="Con factura PDF" value={solicitudes.filter(s => s.factura_url).length} subtitle="archivos en repositorio" color="#2E7D32" />
+              <KpiCard label="Pendientes factura" value={solicitudes.filter(s => s.estado === "Aprobada" || s.estado === "En Proceso Contabilidad").length} subtitle="aprobadas sin PDF" color="#E65100" />
+              <KpiCard label="Monto total" value={formatCurrency(solicitudes.reduce((sum, s) => sum + (parseFloat(s.valor) || 0), 0), "COP")} subtitle="suma de todas" color="#1565C0" />
+            </div>
+
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}><option value="Todos">Todos los estados</option>{ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}</select>
+                <select value={filterMes} onChange={(e) => setFilterMes(e.target.value)} className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none" onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`} onBlur={(e) => e.target.style.boxShadow = 'none'}><option value="Todos">Todos los meses</option>{MESES.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-400">{filtered.length} registros · <strong className="text-gray-700">{formatCurrency(totalFiltered, "COP")}</strong></span>
+                <button onClick={exportCSV} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead style={{backgroundColor: '#FAFAFA'}}>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">ID</th>
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">Fecha</th>
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">Cliente</th>
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">Concepto</th>
+                      <th className="text-right font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">Valor</th>
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">Estado</th>
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider"># Factura</th>
+                      <th className="text-left font-semibold text-gray-600 px-4 py-3 text-xs uppercase tracking-wider">PDF</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr><td colSpan={8} className="text-center text-gray-400 py-12">No hay registros con estos filtros.</td></tr>
+                    ) : filtered.map((s) => (
+                      <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3"><span className="text-xs font-mono text-gray-500 bg-gray-50 px-2 py-0.5 rounded">FAC-{String(s.id).padStart(3, "0")}</span></td>
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{s.fecha}</td>
+                        <td className="px-4 py-3 text-gray-900 font-medium">{s.cliente}</td>
+                        <td className="px-4 py-3 text-gray-600 max-w-xs truncate" title={s.concepto}>{s.concepto}</td>
+                        <td className="px-4 py-3 text-right text-gray-900 font-semibold whitespace-nowrap">{formatCurrency(s.valor, s.moneda)}</td>
+                        <td className="px-4 py-3"><Badge estado={s.estado} /></td>
+                        <td className="px-4 py-3 text-gray-700 font-mono text-xs">{s.num_factura || <span className="text-gray-300">—</span>}</td>
+                        <td className="px-4 py-3">
+                          {s.factura_url ? (
+                            <a href={s.factura_url} target="_blank" rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg transition-all hover:opacity-80"
+                               style={{backgroundColor: '#E8F5E9', color: '#2E7D32'}}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                              Ver PDF
+                            </a>
+                          ) : (
+                            <span className="text-xs text-gray-300">sin PDF</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filtered.length > 0 && (
+                <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400" style={{backgroundColor: '#FAFAFA'}}>
+                  <span>Mostrando {filtered.length} de {solicitudes.length} registros</span>
+                  <span>Base de datos: Supabase · bucket <code className="bg-white px-1.5 py-0.5 rounded text-gray-600 border border-gray-200">facturas</code></span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
