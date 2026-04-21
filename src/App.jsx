@@ -81,6 +81,58 @@ function InputField({ label, value, onChange, placeholder, type = "text", requir
   );
 }
 
+function CurrencyInput({ label, value, onChange, moneda, required }) {
+  const isDecimalCurrency = moneda === "USD" || moneda === "EUR";
+  const prefix = moneda === "COP" ? "$" : moneda === "USD" ? "US$" : "€";
+  const placeholder = moneda === "COP" ? "Ej: 12.000.000" : "Ej: 1,500.00";
+
+  const formatDisplay = (raw) => {
+    if (!raw) return "";
+    if (isDecimalCurrency) {
+      const [intPart, decPart] = raw.split(".");
+      const formattedInt = intPart ? parseInt(intPart, 10).toLocaleString("en-US") : "";
+      return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+    }
+    return parseInt(raw, 10).toLocaleString("es-CO");
+  };
+
+  const handleChange = (e) => {
+    const input = e.target.value;
+    let clean;
+    if (isDecimalCurrency) {
+      clean = input.replace(/[^\d.]/g, "");
+      const firstDot = clean.indexOf(".");
+      if (firstDot !== -1) clean = clean.slice(0, firstDot + 1) + clean.slice(firstDot + 1).replace(/\./g, "");
+      const [intP, decP] = clean.split(".");
+      if (decP !== undefined) clean = `${intP}.${decP.slice(0, 2)}`;
+    } else {
+      clean = input.replace(/\D/g, "");
+    }
+    onChange({ target: { value: clean } });
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium text-gray-700">
+        {label} {required && <span style={{color: FLASH_RED}}>*</span>}
+      </label>
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">{prefix}</span>
+        <input
+          type="text"
+          inputMode={isDecimalCurrency ? "decimal" : "numeric"}
+          value={formatDisplay(value)}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={`w-full ${prefix.length > 1 ? "pl-10" : "pl-8"} pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-transparent transition-all`}
+          onFocus={(e) => e.target.style.boxShadow = `0 0 0 2px ${FLASH_RED}40`}
+          onBlur={(e) => e.target.style.boxShadow = 'none'}
+        />
+      </div>
+    </div>
+  );
+}
+
 function Badge({ estado }) {
   const c = ESTADO_COLORS[estado] || { bg: "#F3F4F6", text: "#374151", dot: "#9CA3AF" };
   return (
@@ -375,7 +427,7 @@ export default function App() {
                     <p className="text-xs font-semibold uppercase tracking-wider" style={{color: '#2E7D32'}}>Valor y Condiciones</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Valor a Facturar" value={form.valor} onChange={set("valor")} placeholder="Ej: 12000000" type="number" required prefix="$" />
+                    <CurrencyInput label="Valor a Facturar" value={form.valor} onChange={set("valor")} moneda={form.moneda} required />
                     <SelectField label="Moneda" value={form.moneda} onChange={set("moneda")} options={["COP", "USD", "EUR"]} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
