@@ -111,6 +111,10 @@ export default function App() {
   const [filterMes, setFilterMes] = useState("Todos");
   const [expandedId, setExpandedId] = useState(null);
   const [sheetsCopied, setSheetsCopied] = useState(false);
+  const [uploadModal, setUploadModal] = useState(null);
+  const [uploadData, setUploadData] = useState({ numFactura: "", fechaFacturacion: new Date().toISOString().split("T")[0], file: null });
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   // Fetch solicitudes from Supabase
   const fetchSolicitudes = async () => {
@@ -160,6 +164,73 @@ export default function App() {
     }
     const { error } = await supabase.from('solicitudes').update(updates).eq('id', id);
     if (!error) fetchSolicitudes();
+  };
+
+  const openUploadModal = (solicitud) => {
+    setUploadModal(solicitud);
+    setUploadData({
+      numFactura: solicitud.num_factura || "",
+      fechaFacturacion: solicitud.fecha_facturacion || new Date().toISOString().split("T")[0],
+      file: null,
+    });
+    setUploadError("");
+  };
+
+  const closeUploadModal = () => {
+    setUploadModal(null);
+    setUploadData({ numFactura: "", fechaFacturacion: new Date().toISOString().split("T")[0], file: null });
+    setUploadError("");
+  };
+
+  const handleFacturaUpload = async () => {
+    if (!uploadModal) return;
+    if (!uploadData.numFactura.trim()) { setUploadError("Ingresa el número de factura"); return; }
+    if (!uploadData.file) { setUploadError("Selecciona el PDF de la factura"); return; }
+
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      const file = uploadData.file;
+      const ext = file.name.split(".").pop();
+      const safeNum = uploadData.numFactura.replace(/[^a-zA-Z0-9-]/g, "_");
+      const path = `${uploadModal.id}/${safeNum}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("facturas")
+        .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type || "application/pdf" });
+
+      if (uploadError) {
+        setUploadError("Error al subir archivo: " + uploadError.message);
+        setUploading(false);
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from("facturas").getPublicUrl(path);
+
+      const updates = {
+        num_factura: uploadData.numFactura.trim(),
+        fecha_facturacion: uploadData.fechaFacturacion,
+        factura_url: publicUrlData.publicUrl,
+        factura_path: path,
+        estado: "Facturada",
+      };
+
+      const { error: updateError } = await supabase.from("solicitudes").update(updates).eq("id", uploadModal.id);
+
+      if (updateError) {
+        setUploadError("Error al guardar datos: " + updateError.message);
+        setUploading(false);
+        return;
+      }
+
+      await fetchSolicitudes();
+      setUploading(false);
+      closeUploadModal();
+    } catch (err) {
+      setUploadError("Error inesperado: " + err.message);
+      setUploading(false);
+    }
   };
 
   const filtered = solicitudes.filter((s) => {
@@ -394,14 +465,41 @@ export default function App() {
                       {s.num_factura && <><span className="w-1 h-1 rounded-full bg-gray-300" /><span className="text-emerald-600 font-semibold">{s.num_factura}</span></>}
                     </div>
                     {expandedId === s.id && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-3 text-sm">
-                        <div><span className="text-gray-400">Proyecto:</span> <span className="text-gray-700">{s.proyecto || "—"}</span></div>
-                        <div><span className="text-gray-400">Forma Pago:</span> <span className="text-gray-700">{s.forma_pago || "—"}</span></div>
-                        <div><span className="text-gray-400">IVA:</span> <span className="text-gray-700">{s.incluye_iva ? "Sí" : "No"}</span></div>
-                        <div><span className="text-gray-400">Retención:</span> <span className="text-gray-700">{s.aplica_retencion ? "Sí" : "No"}</span></div>
-                        {s.aprobado_por && <div><span className="text-gray-400">Aprobó:</span> <span className="text-gray-700">{s.aprobado_por} ({s.fecha_aprobacion})</span></div>}
-                        {s.num_factura && <div><span className="text-gray-400">Factura:</span> <span className="text-gray-700">{s.num_factura} ({s.fecha_facturacion})</span></div>}
-                        {s.observaciones && <div className="col-span-2"><span className="text-gray-400">Notas:</span> <span className="text-gray-700">{s.observaciones}</span></div>}
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div><span className="text-gray-400">Proyecto:</span> <span className="text-gray-700">{s.proyecto || "—"}</span></div>
+                          <div><span className="text-gray-400">Forma Pago:</span> <span className="text-gray-700">{s.forma_pago || "—"}</span></div>
+                          <div><span className="text-gray-400">IVA:</span> <span className="text-gray-700">{s.incluye_iva ? "Sí" : "No"}</span></div>
+                          <div><span className="text-gray-400">Retención:</span> <span className="text-gray-700">{s.aplica_retencion ? "Sí" : "No"}</span></div>
+                          {s.aprobado_por && <div><span className="text-gray-400">Aprobó:</span> <span className="text-gray-700">{s.aprobado_por} ({s.fecha_aprobacion})</span></div>}
+                          {s.num_factura && <div><span className="text-gray-400">Factura:</span> <span className="text-gray-700">{s.num_factura} ({s.fecha_facturacion})</span></div>}
+                          {s.observaciones && <div className="col-span-2"><span className="text-gray-400">Notas:</span> <span className="text-gray-700">{s.observaciones}</span></div>}
+                        </div>
+                        {(s.estado === "Aprobada" || s.estado === "En Proceso Contabilidad" || s.estado === "Facturada" || s.estado === "Pagada") && (
+                          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                            {s.factura_url ? (
+                              <>
+                                <a href={s.factura_url} target="_blank" rel="noopener noreferrer"
+                                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all active:scale-95"
+                                   style={{backgroundColor: '#E8F5E9', color: '#2E7D32', border: '1px solid #A5D6A7'}}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                  Ver factura PDF
+                                </a>
+                                <button onClick={() => openUploadModal(s)}
+                                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 border border-gray-200 transition-all">
+                                  Reemplazar
+                                </button>
+                              </>
+                            ) : (
+                              <button onClick={() => openUploadModal(s)}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-xl transition-all active:scale-95"
+                                style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`, boxShadow: `0 4px 14px rgba(229, 57, 53, 0.3)`}}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                Subir factura PDF
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -460,6 +558,83 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {uploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={closeUploadModal}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-5" style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`}}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-bold text-white">Subir factura</h2>
+                  <p className="text-sm mt-1" style={{color: 'rgba(255,255,255,0.85)'}}>
+                    FAC-{String(uploadModal.id).padStart(3, "0")} · {uploadModal.cliente}
+                  </p>
+                </div>
+                <button onClick={closeUploadModal} className="text-white/80 hover:text-white transition-colors">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <InputField
+                label="Número de Factura"
+                value={uploadData.numFactura}
+                onChange={(e) => setUploadData({ ...uploadData, numFactura: e.target.value })}
+                placeholder="Ej: FV-2026-0042"
+                required
+              />
+              <InputField
+                label="Fecha de Facturación"
+                value={uploadData.fechaFacturacion}
+                onChange={(e) => setUploadData({ ...uploadData, fechaFacturacion: e.target.value })}
+                type="date"
+                required
+              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700">
+                  Archivo PDF de la factura <span style={{color: FLASH_RED}}>*</span>
+                </label>
+                <label className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-400 transition-all">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={FLASH_RED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <span className="text-sm text-gray-700 flex-1 truncate">
+                    {uploadData.file ? uploadData.file.name : "Selecciona el PDF"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    className="hidden"
+                    onChange={(e) => setUploadData({ ...uploadData, file: e.target.files?.[0] || null })}
+                  />
+                </label>
+                {uploadData.file && (
+                  <p className="text-xs text-gray-400">{(uploadData.file.size / 1024).toFixed(0)} KB</p>
+                )}
+              </div>
+              {uploadError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+                  {uploadError}
+                </div>
+              )}
+              <div className="flex gap-3 pt-2">
+                <button onClick={closeUploadModal} disabled={uploading}
+                  className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl transition-all hover:bg-gray-50 active:scale-[0.98] disabled:opacity-50">
+                  Cancelar
+                </button>
+                <button onClick={handleFacturaUpload} disabled={uploading}
+                  className="flex-1 py-3 text-white font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{background: `linear-gradient(135deg, ${FLASH_RED} 0%, ${FLASH_RED_DARK} 100%)`, boxShadow: '0 4px 14px rgba(229, 57, 53, 0.3)'}}>
+                  {uploading ? (
+                    <>
+                      <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                      Subiendo...
+                    </>
+                  ) : "Subir y marcar como Facturada"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {sheetsCopied && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3" style={{backgroundColor: '#1F2937', maxWidth: '90vw'}}>
